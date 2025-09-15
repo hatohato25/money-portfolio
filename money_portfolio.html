@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>資産ポートフォリオ</title>
+        <script>
+            // Tailwind CSSのダークモード設定を'class'に設定
+            window.tailwind = { config: { darkMode: 'class' } };
+        </script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --bg-page: #f0f9ff;
+                --bg-card: #ffffff;
+                --bg-card-hover: #e0f2fe;
+                --bg-input: #ffffff;
+                --bg-button: #e0f2fe;
+                --text-main: #0c4a6e;
+                --text-subtle: #0369a1;
+                --border-main: #e0f2fe;
+                --border-input: #cbd5e1;
+                --border-focus: #3b82f6;
+                --accent-color: #2563eb;
+            }
+
+            html.dark {
+                --bg-page: #020617;
+                --bg-card: #1e293b;
+                --bg-card-hover: #334155;
+                --bg-input: #334155;
+                --bg-button: #334155;
+                --text-main: #f1f5f9;
+                --text-subtle: #94a3b8;
+                --border-main: #334155;
+                --border-input: #475569;
+                --border-focus: #60a5fa;
+                --accent-color: #3b82f6;
+            }
+            html {
+                background-color: var(--bg-page);
+            }
+            body {
+                font-family: 'Inter', sans-serif;
+                color: var(--text-subtle);
+            }
+            h1, h2, h3, h4, th, .prose {
+                color: var(--text-main);
+            }
+            .card {
+                background-color: var(--bg-card);
+                border: 1px solid var(--border-main);
+            }
+            .total-assets-card {
+                background-color: color-mix(in srgb, var(--bg-card) 80%, transparent);
+                backdrop-filter: blur(4px);
+                border: 1px solid var(--border-main);
+            }
+            .accordion-header:hover {
+                background-color: var(--bg-card-hover);
+            }
+            .accordion-content {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease-out;
+            }
+            ::-webkit-scrollbar { width: 8px; }
+            ::-webkit-scrollbar-track { background: var(--border-main); }
+            ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+            ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+            select:disabled { background-color: var(--bg-page); opacity: 0.7; cursor: not-allowed; }
+
+            /* AI Modal Specific Styles */
+            .modal-overlay { transition: opacity 0.3s ease; }
+            .modal-content { transition: transform 0.3s ease; background-color: var(--bg-card); }
+            .loader { border: 4px solid var(--bg-card-hover); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .prose h1, .prose h2, .prose h3 { margin-bottom: 0.5em; color: var(--text-main); }
+            .prose p, .prose ul, .prose ol, .prose li { color: var(--text-subtle); }
+        </style>
+    </head>
+    <body class="transition-colors duration-300">
+
+        <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+            <header class="mb-8 relative">
+                <h1 class="text-3xl font-bold mb-2">資産ポートフォリオ</h1>
+                <p>あなたの金融資産を一覧で管理しましょう。</p>
+                <div class="absolute top-1 right-0">
+                    <label for="dark-mode-toggle" class="relative w-16 h-8 flex items-center cursor-pointer">
+                        <input type="checkbox" id="dark-mode-toggle" class="sr-only peer">
+                        <div class="absolute w-full h-full rounded-full transition-colors" style="background-color: var(--bg-button);"></div>
+                        <svg class="absolute left-2 w-5 h-5 text-yellow-400 opacity-0 peer-checked:opacity-100 transition-opacity duration-300" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                        <svg class="absolute right-2 w-5 h-5 text-yellow-400 opacity-100 peer-checked:opacity-0 transition-opacity duration-300" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 15.657a1 1 0 010-1.414l-.707-.707a1 1 0 01-1.414 1.414l.707.707a1 1 0 011.414 0zM3 11a1 1 0 100-2H2a1 1 0 100 2h1zM6.464 4.95l.707-.707a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414z"></path></svg>
+                        <div class="absolute top-1 left-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-8 shadow-md"></div>
+                    </label>
+                </div>
+            </header>
+
+            <div class="total-assets-card p-6 rounded-xl shadow-lg mb-8 sticky top-4 z-10">
+                <div class="flex flex-col sm:flex-row justify-between items-center">
+                    <div>
+                        <h2 class="text-sm font-medium">総資産額</h2>
+                        <p id="total-assets" class="text-3xl font-bold" style="color: var(--accent-color);">¥0</p>
+                    </div>
+                    <div class="flex items-center space-x-2 mt-4 sm:mt-0 flex-wrap justify-center gap-2">
+                        <button id="analyze-portfolio-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M12 12a5 5 0 100-10 5 5 0 000 10z"></path></svg>
+                            AIで分析する ✨
+                        </button>
+                        <button id="import-btn" class="font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center" style="background-color: var(--bg-button); color: var(--text-main);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            インポート
+                        </button>
+                        <input type="file" id="import-file" class="hidden" accept=".json">
+                        <button id="export-btn" class="font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center text-white" style="background-color: var(--accent-color);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            エクスポート
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="charts-container" class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-lg mb-4">資産カテゴリー別割合</h3>
+                    <div id="total-pie-chart-container" class="relative" style="height: 250px;">
+                        <canvas id="total-pie-chart"></canvas>
+                    </div>
+                </div>
+                <div class="card p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-lg mb-4">小カテゴリー別 金額ランキング (Top 10)</h3>
+                    <div id="detail-category-ranking-chart-container" class="relative" style="height: 250px;">
+                        <canvas id="detail-category-ranking-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div id="portfolio-container" class="space-y-4"></div>
+            <div class="mt-8">
+                <button id="add-category-btn" class="card w-full font-semibold py-3 px-4 rounded-lg border-2 border-dashed transition duration-200 flex items-center justify-center" style="color: var(--accent-color); border-color: var(--accent-color);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    新しい資産項目を追加
+                </button>
+            </div>
+        </div>
+
+        <div id="ai-analysis-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+            <div class="modal-content rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform scale-95">
+                <div class="flex justify-between items-center p-4" style="border-bottom: 1px solid var(--border-main);">
+                    <h3 class="text-xl font-bold">✨ AIポートフォリオ分析</h3>
+                    <button id="modal-close-btn" class="hover:text-red-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div id="modal-body" class="p-6 overflow-y-auto">
+                    <div id="modal-loader" class="flex flex-col items-center justify-center h-64">
+                        <div class="loader"></div>
+                        <p class="mt-4">ポートフォリオを分析中です...</p>
+                    </div>
+                    <div id="modal-result" class="hidden prose max-w-none"></div>
+                </div>
+                <div class="p-4 text-xs" style="background-color: color-mix(in srgb, var(--bg-card) 50%, transparent); border-top: 1px solid var(--border-main);">
+                    免責事項: この分析はAIによって生成されたものであり、情報提供のみを目的としています。専門的な財務アドバイスに代わるものではありません。投資判断はご自身の責任で行ってください。
+                </div>
+            </div>
+        </div>
+
+        <script id="config">
+            const categoriesConfig = {
+                "未設定": { "未分類": null },
+                "銀行口座": { 
+                "みずほ銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "三菱UFJ銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "三井住友銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "りそな銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "ゆうちょ銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "楽天銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "auじぶん銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "住信SBIネット銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "ソニー銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "その他": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                },
+                "証券口座": {
+                "楽天証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "SBI証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "三菱UFJeスマート証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "マネックス証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "野村證券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "大和証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "その他": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                },
+                "暗号資産口座": {
+                "Coincheck": null,
+                "bitFlyer": null,
+                "GMOコイン": null,
+                "DMM Bitcoin": null,
+                "その他": null,
+                },
+                "年金": {
+                "国民年金": null,
+                "厚生年金": null,
+                "個人年金保険": null,
+                "その他": null,
+                },
+                "確定拠出年金": {
+                "iDeCo": ["投資信託", "債券", "その他"],
+                "企業型DC": ["投資信託", "債券", "その他"],
+                "その他": ["投資信託", "債券", "その他"],
+                },
+                "子ども銀行口座": { 
+                "みずほ銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "三菱UFJ銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "三井住友銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "りそな銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "ゆうちょ銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "楽天銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "auじぶん銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "住信SBIネット銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "ソニー銀行": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                "その他": ["普通預金", "定期預金", "外貨預金", "投資信託"],
+                },
+                "子ども証券口座": {
+                "楽天証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "SBI証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "三菱UFJeスマート証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "マネックス証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "野村證券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "大和証券": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                "その他": ["国内株式", "国内株式（NISA）", "米国株式", "投資信託", "投資信託（NISA）", "債券", "FX", "その他"],
+                },
+                "QRコード決済": {
+                "PayPay": null,
+                "楽天ペイ": null,
+                "d払い": null,
+                "au PAY": null,
+                "LINE Pay": null,
+                "メルペイ": null,
+                "その他": null,
+                },
+                "クレジットカード": {
+                "楽天カード": null,
+                "三井住友カード": null,
+                "JCBカード": null,
+                "アメリカン・エキスプレス": null,
+                "ダイナースクラブ": null,
+                "その他": null,
+                },
+                "ポイント": {
+                "楽天ポイント": null,
+                "Tポイント": null,
+                "dポイント": null,
+                "Pontaポイント": null,
+                "マイル": null,
+                "その他": null,
+                },
+                "その他資産": {
+                "不動産": null,
+                "保険": null,
+                "その他": null,
+                }
+            };
+        </script>
+
+        <script type="module">
+            let portfolioData = [];
+            let chartInstances = {};
+            let openAccordions = new Set();
+            const portfolioContainer = document.getElementById('portfolio-container');
+            const totalAssetsEl = document.getElementById('total-assets');
+            const addCategoryBtn = document.getElementById('add-category-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const importBtn = document.getElementById('import-btn');
+            const importFileEl = document.getElementById('import-file');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const analyzePortfolioBtn = document.getElementById('analyze-portfolio-btn');
+            const aiModal = document.getElementById('ai-analysis-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const modalLoader = document.getElementById('modal-loader');
+            const modalResult = document.getElementById('modal-result');
+
+            const currencyFormatter = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', minimumFractionDigits: 0, maximumFractionDigits: 0, });
+            const chartColors = [ '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#d946ef' ];
+            
+            /**
+             * Gemini APIを呼び出し、ポートフォリオの分析を依頼します。
+             * @param {string} portfolioJSON - ポートフォリオデータをJSON形式の文字列で渡します。
+             * @returns {Promise<string>} AIによる分析結果の文字列を返します。
+             */
+            async function callGeminiAPI(portfolioJSON) {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const systemPrompt = "あなたは、知識豊富で親切なファイナンシャル・アシスタントです。ユーザーの資産ポートフォリオに関する専門的な分析と最新の知識を提供します。回答は常にmarkdown形式で、グラフィカルに読みやすく構成してください。";
+                const userQuery = `以下のJSONデータは私の資産ポートフォリオです。このポートフォリオを詳細に分析し、考慮すべき潜在的なリスク、ポートフォリオの強みと弱みを把握したうえで、さらなる攻めの一手を提案してください。\n\n\`\`\`json\n${portfolioJSON}\n\`\`\``;
+                const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, };
+                try {
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    return text || "AIからの有効な回答を得られませんでした。";
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    return `分析中にエラーが発生しました: ${error.message}`;
+                }
+            }
+            
+            /**
+             * ページにライトモードまたはダークモードのテーマを適用します。
+             * @param {boolean} isDark - ダークモードを適用する場合はtrue、ライトモードの場合はfalse。
+             */
+            function applyTheme(isDark) {
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    darkModeToggle.checked = true;
+                    localStorage.setItem('theme', 'dark');
+                    Chart.defaults.color = '#cbd5e1';
+                    Chart.defaults.borderColor = '#334155';
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    darkModeToggle.checked = false;
+                    localStorage.setItem('theme', 'light');
+                    Chart.defaults.color = '#334155';
+                    Chart.defaults.borderColor = '#cbd5e1';
+                }
+                // グラフを再描画するためにrenderを呼び出す
+                setTimeout(render, 0);
+            }
+
+            /**
+             * `portfolioData`に基づいて、ポートフォリオ全体のUIを最初から再描画します。
+             */
+            function render() {
+                Object.values(chartInstances).forEach(chart => chart.destroy());
+                chartInstances = {};
+                portfolioContainer.innerHTML = '';
+                
+                const groupedData = getGroupedData();
+                const orderedCategories = Object.keys(categoriesConfig).filter(key => groupedData[key] && groupedData[key].length > 0);
+
+                orderedCategories.forEach(categoryName => {
+                    const items = groupedData[categoryName];
+                    const categoryTotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+                    const accordion = createAccordion(categoryName, categoryTotal, items);
+                    portfolioContainer.appendChild(accordion);
+                });
+
+                updateTotalsAndCharts();
+                restoreAccordionState();
+            }
+
+            /**
+             * 総資産額とすべてのチャートを最新のデータで更新します。
+             */
+            function updateTotalsAndCharts() {
+                const groupedData = getGroupedData();
+                let totalAssets = 0;
+
+                for (const categoryName in categoriesConfig) {
+                    const header = document.querySelector(`.accordion-header[data-category-name="${categoryName}"]`);
+                    if (header) {
+                        const items = (groupedData[categoryName] || []).filter(item => item.category !== '未設定');
+                        const categoryTotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+                        totalAssets += categoryTotal;
+                        if (categoryName !== '未設定') {
+                            header.querySelector('.category-total').textContent = currencyFormatter.format(categoryTotal);
+                        }
+                    }
+                }
+
+                totalAssetsEl.textContent = currencyFormatter.format(totalAssets);
+                
+                if (chartInstances.pie) chartInstances.pie.destroy();
+                if (chartInstances.ranking) chartInstances.ranking.destroy();
+                renderOverviewCharts(groupedData);
+
+                openAccordions.forEach(categoryName => {
+                    if (categoryName !== '未設定') {
+                        const items = groupedData[categoryName];
+                        renderSubCategoryChart(categoryName, items);
+                        renderSubCategoryBarChart(categoryName, items);
+                    }
+                });
+            }
+            
+            /**
+             * `portfolioData`をカテゴリーごとにグループ化します。
+             * @returns {Object.<string, Array<Object>>} カテゴリー名をキーとし、そのカテゴリーに属する項目の配列を値とするオブジェクト。
+             */
+            const getGroupedData = () => portfolioData.reduce((acc, item, index) => {
+                const key = item.category;
+                if (!acc[key]) acc[key] = [];
+                item.originalIndex = index;
+                acc[key].push(item);
+                return acc;
+            }, {});
+
+            /**
+             * 再描画後にアコーディオンの開閉状態を復元します。
+             */
+            function restoreAccordionState() {
+                document.querySelectorAll('.accordion-header').forEach(header => {
+                    const categoryName = header.dataset.categoryName;
+                    if (openAccordions.has(categoryName)) {
+                        const content = header.nextElementSibling;
+                        const svg = header.querySelector('svg');
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        svg.classList.add('rotate-180');
+                    }
+                });
+            }
+            
+            /**
+             * 概要チャート（円グラフとランキング）を描画します。
+             * @param {Object.<string, Array<Object>>} groupedData - カテゴリー別にグループ化されたポートフォリオデータ。
+             */
+            function renderOverviewCharts(groupedData) {
+                // --- Pie Chart (資産カテゴリー別割合) ---
+                const pieContainer = document.getElementById('total-pie-chart-container');
+                if(!pieContainer) return;
+
+                const filteredGroupData = Object.keys(groupedData).filter(key => key !== '未設定').reduce((obj, key) => { obj[key] = groupedData[key]; return obj; }, {});
+                const pieLabels = Object.keys(filteredGroupData).filter(key => filteredGroupData[key] && filteredGroupData[key].length > 0 && filteredGroupData[key].some(item => item.amount > 0));
+                const pieData = pieLabels.map(label => filteredGroupData[label].reduce((sum, item) => sum + (item.amount || 0), 0));
+                
+                if (pieData.length > 0) {
+                    pieContainer.innerHTML = `<canvas id="total-pie-chart"></canvas>`;
+                    const pieCtx = document.getElementById('total-pie-chart').getContext('2d');
+                    chartInstances.pie = new Chart(pieCtx, { 
+                        type: 'pie', 
+                        data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: chartColors, borderWidth: 2 }] }, 
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${currencyFormatter.format(c.raw)}` } } } 
+                        } 
+                    });
+                } else {
+                    pieContainer.innerHTML = `<p class="text-center h-full flex items-center justify-center" style="color: var(--text-subtle);">データがありません</p>`;
+                }
+
+                // --- Ranking Bar Chart (小カテゴリー別 金額ランキング) ---
+                const rankingContainer = document.getElementById('detail-category-ranking-chart-container');
+                if(!rankingContainer) return;
+
+                const detailCategoryTotals = portfolioData
+                    .filter(item => item.detailCategory && item.amount > 0)
+                    .reduce((acc, item) => {
+                        const key = item.detailCategory;
+                        acc[key] = (acc[key] || 0) + item.amount;
+                        return acc;
+                    }, {});
+
+                const sortedData = Object.entries(detailCategoryTotals)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 10); // 上位10件
+
+                const rankingLabels = sortedData.map(([label]) => label).reverse();
+                const rankingData = sortedData.map(([, amount]) => amount).reverse();
+
+                if (rankingData.length > 0) {
+                    rankingContainer.innerHTML = `<canvas id="detail-category-ranking-chart"></canvas>`;
+                    const rankingCtx = document.getElementById('detail-category-ranking-chart').getContext('2d');
+                    chartInstances.ranking = new Chart(rankingCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: rankingLabels,
+                            datasets: [{
+                                label: '金額',
+                                data: rankingData,
+                                backgroundColor: chartColors,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y', // 横棒グラフ
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { callbacks: { label: (c) => `${c.label}: ${currencyFormatter.format(c.raw)}` } }
+                            },
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    ticks: { callback: (v) => { if (v >= 10000) return `¥${Math.floor(v / 10000)}万`; return `¥${v}`; } }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    rankingContainer.innerHTML = `<p class="text-center h-full flex items-center justify-center" style="color: var(--text-subtle);">ランキングデータを表示するには、小カテゴリーと金額を入力してください</p>`;
+                }
+            }
+
+            /**
+             * 特定のカテゴリー内のサブカテゴリー別円グラフを描画します。
+             * @param {string} categoryName - メインカテゴリーの名前。
+             * @param {Array<Object>} items - そのカテゴリーに属するポートフォリオ項目の配列。
+             */
+            function renderSubCategoryChart(categoryName, items) {
+                const chartCanvasId = `chart-${(categoryName || '').replace(/\s/g, '')}`;
+                const chartContainer = document.getElementById(chartCanvasId)?.parentElement;
+                if (!chartContainer) return;
+                if (chartInstances[chartCanvasId]) chartInstances[chartCanvasId].destroy();
+                const subCategoryData = (items || []).reduce((acc, item) => { if(item.amount > 0) acc[item.subCategory || '未分類'] = (acc[item.subCategory || '未分類'] || 0) + (item.amount || 0); return acc; }, {});
+                const labels = Object.keys(subCategoryData);
+                const data = Object.values(subCategoryData);
+
+                if(data.length > 0) {
+                    chartContainer.innerHTML = `<canvas id="${chartCanvasId}"></canvas>`;
+                    const ctx = document.getElementById(chartCanvasId).getContext('2d');
+                    chartInstances[chartCanvasId] = new Chart(ctx, { type: 'pie', data: { labels, datasets: [{ data, backgroundColor: chartColors, borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${currencyFormatter.format(c.raw)}` } } } } });
+                } else {
+                    chartContainer.innerHTML = `<p class="text-center h-full flex items-center justify-center" style="color: var(--text-subtle);">データがありません</p>`;
+                }
+            }
+
+            /**
+             * 特定のカテゴリー内のサブカテゴリー別棒グラフを描画します。
+             * @param {string} categoryName - メインカテゴリーの名前。
+             * @param {Array<Object>} items - そのカテゴリーに属するポートフォリオ項目の配列。
+             */
+            function renderSubCategoryBarChart(categoryName, items) {
+                const chartCanvasId = `chart-${(categoryName || '').replace(/\s/g, '')}-bar`;
+                const chartContainer = document.getElementById(chartCanvasId)?.parentElement;
+                if (!chartContainer) return;
+                if (chartInstances[chartCanvasId]) chartInstances[chartCanvasId].destroy();
+                const subCategoryData = (items || []).reduce((acc, item) => { if(item.amount > 0) acc[item.subCategory || '未分類'] = (acc[item.subCategory || '未分類'] || 0) + (item.amount || 0); return acc; }, {});
+                const labels = Object.keys(subCategoryData);
+                const data = Object.values(subCategoryData);
+                if(data.length > 0) {
+                    chartContainer.innerHTML = `<canvas id="${chartCanvasId}"></canvas>`;
+                    const ctx = document.getElementById(chartCanvasId).getContext('2d');
+                    chartInstances[chartCanvasId] = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: '合計額', data, backgroundColor: chartColors, borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${currencyFormatter.format(c.raw)}` } } }, scales: { y: { beginAtZero: true, ticks: { callback: (v) => { if (v >= 10000) return `¥${Math.floor(v/10000)}万`; return `¥${v}`; } } } } } });
+                } else {
+                    chartContainer.innerHTML = `<p class="text-center h-full flex items-center justify-center" style="color: var(--text-subtle);">データがありません</p>`;
+                }
+            }
+
+            /**
+             * 1つのメインカテゴリーに対応するアコーディオンのHTML要素を生成します。
+             * @param {string} categoryName - カテゴリー名。
+             * @param {number} categoryTotal - カテゴリーの合計金額。
+             * @param {Array<Object>} items - カテゴリーに属する項目の配列。
+             * @returns {HTMLElement} 生成されたアコーディオンのdiv要素。
+             */
+            function createAccordion(categoryName, categoryTotal, items) {
+                const accordionWrapper = document.createElement('div');
+                accordionWrapper.className = 'card rounded-xl shadow-md overflow-hidden';
+                const chartCanvasId = `chart-${categoryName.replace(/\s/g, '')}`;
+                const isUncategorized = categoryName === '未設定';
+
+                accordionWrapper.innerHTML = `
+                    <div class="accordion-header p-4 cursor-pointer flex justify-between items-center transition" data-category-name="${categoryName}">
+                        <div><h3 class="font-semibold text-lg ${isUncategorized ? 'text-slate-500' : ''}">${categoryName}</h3></div>
+                        <div class="flex items-center">
+                            <span class="category-total font-bold text-lg mr-4" style="color: var(--text-main);">${isUncategorized ? '' : currencyFormatter.format(categoryTotal)}</span>
+                            <svg class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="accordion-content" style="border-top: 1px solid var(--border-main);">
+                        <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-8 ${isUncategorized ? 'hidden' : ''}">
+                            <div><h4 class="font-semibold text-center mb-2">中カテゴリー別割合</h4><div class="relative h-64"><canvas id="${chartCanvasId}"></canvas></div></div>
+                            <div><h4 class="font-semibold text-center mb-2">中カテゴリー別合計</h4><div class="relative h-64"><canvas id="${chartCanvasId}-bar"></canvas></div></div>
+                        </div>
+                        <div class="p-4 overflow-x-auto">
+                            <table class="w-full text-left min-w-[600px]">
+                                <thead style="border-bottom: 1px solid var(--border-main);"><tr>
+                                    <th class="py-2 px-2 font-medium text-sm w-3/12">大カテゴリー</th><th class="py-2 px-2 font-medium text-sm w-3/12">中カテゴリー</th>
+                                    <th class="py-2 px-2 font-medium text-sm w-3/12">小カテゴリー</th><th class="py-2 px-2 font-medium text-sm w-2/12 text-right">金額</th><th class="py-2 px-2 font-medium text-sm w-1/12"></th>
+                                </tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="p-4 ${isUncategorized ? 'hidden' : ''}" style="border-top: 1px solid var(--border-main); background-color: color-mix(in srgb, var(--bg-card) 50%, transparent);">
+                            <button class="add-row-btn font-semibold transition text-sm flex items-center" style="color: var(--accent-color);" data-category="${categoryName}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                この項目にレコードを追加
+                            </button>
+                        </div>
+                    </div>`;
+                const tbody = accordionWrapper.querySelector('tbody');
+                items.forEach(item => tbody.appendChild(createTableRow(item)));
+                return accordionWrapper;
+            }
+
+            /**
+             * 1つのポートフォリオ項目に対応するテーブル行のHTML要素を生成します。
+             * @param {Object} item - ポートフォリオ項目のオブジェクト。
+             * @returns {HTMLTableRowElement} 生成されたテーブルのtr要素。
+             */
+            function createTableRow(item) {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-main)';
+                tr.className = 'last:border-b-0';
+                tr.dataset.index = item.originalIndex;
+                const tdCategory = document.createElement('td');
+                tdCategory.className = 'py-3 px-2';
+                let categoryOptions;
+                if (item._isEditable && item.category === '未設定') {
+                    const usedCategories = new Set(portfolioData.filter(p => p.originalIndex !== item.originalIndex && p.category !== '未設定').map(p => p.category));
+                    const allPossibleCategories = Object.keys(categoriesConfig).filter(c => c !== '未設定');
+                    const availableOptions = allPossibleCategories.filter(c => !usedCategories.has(c));
+                    categoryOptions = ['未設定', ...availableOptions];
+                } else {
+                    categoryOptions = Object.keys(categoriesConfig);
+                }
+                const categorySelect = createSelect(categoryOptions, item.category, 'category');
+                if (!item._isEditable) { categorySelect.disabled = true; }
+                tdCategory.appendChild(categorySelect);
+                const tdSubCategory = document.createElement('td');
+                tdSubCategory.className = 'py-3 px-2';
+                tdSubCategory.appendChild(createSelect(Object.keys(categoriesConfig[item.category] || {}), item.subCategory, 'subCategory'));
+                const tdDetailCategory = document.createElement('td');
+                tdDetailCategory.className = 'py-3 px-2';
+                const detailOptions = (categoriesConfig[item.category] && categoriesConfig[item.category][item.subCategory]) || [];
+                if (detailOptions && detailOptions.length > 0) {
+                    tdDetailCategory.appendChild(createSelect(detailOptions, item.detailCategory, 'detailCategory'));
+                } else {
+                    tdDetailCategory.innerHTML = `<span class="text-slate-500">N/A</span>`;
+                }
+                const tdAmount = document.createElement('td');
+                tdAmount.className = 'py-3 px-2 text-right';
+                const amountInput = document.createElement('input');
+                amountInput.type = 'number';
+                amountInput.className = 'w-full p-1.5 border rounded-md text-right focus:ring-2 focus:outline-none';
+                amountInput.placeholder = '金額'; amountInput.value = item.amount || ''; amountInput.dataset.field = 'amount';
+                amountInput.style.backgroundColor = 'var(--bg-input)'; amountInput.style.borderColor = 'var(--border-input)'; amountInput.style.color = 'var(--text-main)';
+                amountInput.onfocus = () => amountInput.style.borderColor = 'var(--border-focus)'; amountInput.onblur = () => amountInput.style.borderColor = 'var(--border-input)';
+                tdAmount.appendChild(amountInput);
+                const tdDelete = document.createElement('td');
+                tdDelete.className = 'py-3 px-2 text-center';
+                tdDelete.innerHTML = `<button class="delete-row-btn text-slate-400 hover:text-red-500 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>`;
+                tr.append(tdCategory, tdSubCategory, tdDetailCategory, tdAmount, tdDelete);
+                return tr;
+            }
+
+            /**
+             * ドロップダウン（select）のHTML要素を生成します。
+             * @param {Array<string>} options - ドロップダウンの選択肢の配列。
+             * @param {string} selectedValue - 事前に選択されている値。
+             * @param {string} field - このselectが対応するデータのフィールド名。
+             * @returns {HTMLSelectElement} 生成されたselect要素。
+             */
+            function createSelect(options, selectedValue, field) {
+                const select = document.createElement('select');
+                select.className = 'w-full p-1.5 border rounded-md focus:ring-2 focus:outline-none';
+                select.dataset.field = field;
+                select.style.backgroundColor = 'var(--bg-input)'; select.style.borderColor = 'var(--border-input)'; select.style.color = 'var(--text-main)';
+                select.onfocus = () => select.style.borderColor = 'var(--border-focus)'; select.onblur = () => select.style.borderColor = 'var(--border-input)';
+                select.innerHTML = `<option value="">選択してください</option>` + options.map(opt => `<option value="${opt}" ${opt === selectedValue ? 'selected' : ''}>${opt}</option>`).join('');
+                return select;
+            }
+
+            /**
+             * アコーディオンヘッダーがクリックされたときの開閉処理をハンドリングします。
+             * @param {HTMLElement} header - クリックされたアコーディオンのヘッダー要素。
+             */
+            function handleAccordionToggle(header) {
+                const content = header.nextElementSibling;
+                const svg = header.querySelector('svg');
+                const categoryName = header.dataset.categoryName;
+                if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                    content.style.maxHeight = '0px';
+                    svg.classList.remove('rotate-180');
+                    openAccordions.delete(categoryName);
+                } else {
+                    svg.classList.add('rotate-180');
+                    openAccordions.add(categoryName);
+                    if (categoryName !== '未設定') {
+                        const groupedData = getGroupedData();
+                        renderSubCategoryChart(categoryName, groupedData[categoryName]);
+                        renderSubCategoryBarChart(categoryName, groupedData[categoryName]);
+                    }
+                    setTimeout(() => { content.style.maxHeight = content.scrollHeight + "px"; }, 10);
+                }
+            }
+
+            /**
+             * `portfolioData`の各項目に最新のインデックスを再割り当てします。
+             */
+            function reindexPortfolioData() {
+                portfolioData.forEach((item, i) => {
+                    item.originalIndex = i;
+                });
+            }
+
+            /**
+             * 特定のカテゴリーのテーブルの内容のみを再描画します。
+             * @param {string} categoryName - 再描画するテーブルが含まれるカテゴリー名。
+             */
+            function renderTable(categoryName) {
+                const accordion = portfolioContainer.querySelector(`.accordion-header[data-category-name="${categoryName}"]`);
+                if (!accordion) return;
+
+                const tbody = accordion.nextElementSibling.querySelector('tbody');
+                if (!tbody) return;
+
+                tbody.innerHTML = '';
+                
+                const items = portfolioData.filter(item => item.category === categoryName);
+                items.forEach(item => {
+                    tbody.appendChild(createTableRow(item));
+                });
+
+                const content = accordion.nextElementSibling;
+                if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            }
+
+            /**
+             * 指定されたカテゴリーに新しい空の行を追加します。
+             * @param {string} category - 行を追加するカテゴリー名。
+             */
+            function handleAddRow(category) {
+                portfolioData.push({ category, subCategory: '', detailCategory: '', amount: 0 });
+                reindexPortfolioData();
+                openAccordions.add(category);
+                renderTable(category);
+                updateTotalsAndCharts();
+            }
+
+            /**
+             * 指定されたインデックスの行をデータから削除し、UIを更新します。
+             * @param {number} index - 削除する`portfolioData`内の項目のインデックス。
+             */
+            function handleDeleteRow(index) {
+                const category = portfolioData[index].category;
+                portfolioData.splice(index, 1);
+                reindexPortfolioData();
+
+                const itemsLeft = portfolioData.some(item => item.category === category);
+
+                if (itemsLeft) {
+                    renderTable(category);
+                } else {
+                    const accordionHeader = portfolioContainer.querySelector(`.accordion-header[data-category-name="${category}"]`);
+                    if (accordionHeader) {
+                        accordionHeader.parentElement.remove();
+                    }
+                    openAccordions.delete(category);
+                }
+                updateTotalsAndCharts();
+            }
+
+            /**
+             * テーブル内の入力フィールド（selectやinput）の変更をハンドリングします。
+             * @param {number} index - 変更があった項目の`portfolioData`内でのインデックス。
+             * @param {string} field - 変更されたフィールド名（例: 'category', 'amount'）。
+             * @param {string|number} value - 新しい値。
+             * @param {HTMLTableRowElement} tableRow - 変更があった入力フィールドを含むtr要素。
+             */
+            function handleInputChange(index, field, value, tableRow) {
+                const item = portfolioData[index];
+                if (field === 'category' && item._isEditable && value !== '未設定' && value !== '') { delete item._isEditable; }
+                item[field] = value;
+                if (field === 'category') {
+                    item.subCategory = ''; item.detailCategory = ''; openAccordions.add(value); render(); 
+                } else if (field === 'subCategory') {
+                    item.detailCategory = '';
+                    const newRow = createTableRow(item);
+                    tableRow.cells[2].innerHTML = newRow.cells[2].innerHTML;
+                    updateTotalsAndCharts();
+                } else {
+                    updateTotalsAndCharts();
+                }
+            }
+
+            /**
+             * アプリケーションを初期化し、イベントリスナーを設定します。
+             */
+            function init() {
+                darkModeToggle.addEventListener('change', () => applyTheme(darkModeToggle.checked));
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const savedTheme = localStorage.getItem('theme');
+                applyTheme(savedTheme === 'dark' || (!savedTheme && prefersDark));
+                
+                portfolioContainer.addEventListener('click', (e) => {
+                    const header = e.target.closest('.accordion-header'); if (header) { handleAccordionToggle(header); return; }
+                    const addBtn = e.target.closest('.add-row-btn'); if (addBtn) { handleAddRow(addBtn.dataset.category); return; }
+                    const deleteBtn = e.target.closest('.delete-row-btn'); if (deleteBtn) { const tr = deleteBtn.closest('tr'); if (tr) { handleDeleteRow(tr.dataset.index); } return; }
+                });
+                portfolioContainer.addEventListener('change', (e) => {
+                    if (e.target.matches('input, select')) {
+                        const tr = e.target.closest('tr');
+                        if (tr) { const index = tr.dataset.index; const field = e.target.dataset.field; const value = field === 'amount' ? parseFloat(e.target.value) || 0 : e.target.value; handleInputChange(index, field, value, tr); }
+                    }
+                });
+                addCategoryBtn.addEventListener('click', () => { portfolioData.push({ category: "未設定", subCategory: '', detailCategory: '', amount: null, _isEditable: true }); openAccordions.add("未設定"); render(); });
+                
+                exportBtn.addEventListener('click', () => {
+                    const cleanedPortfolioData = portfolioData.map(({ _isEditable, ...rest }) => rest);
+                    const dataStr = JSON.stringify({ portfolioData: cleanedPortfolioData }, null, 2);
+                    const url = URL.createObjectURL(new Blob([dataStr], { type: 'application/json' }));
+                    const a = document.createElement('a'); a.href = url; a.download = `portfolio_${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url);
+                });
+
+                importBtn.addEventListener('click', () => importFileEl.click());
+                
+                importFileEl.addEventListener('change', (event) => {
+                    const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result); let importedPortfolioData;
+                            openAccordions.clear(); // 常にアコーディオンを閉じる
+                            if (data && Array.isArray(data.portfolioData)) {
+                                importedPortfolioData = data.portfolioData;
+                            } else if (Array.isArray(data)) {
+                                importedPortfolioData = data;
+                            } else {
+                                alert('無効なファイル形式です。'); return;
+                            }
+                            importedPortfolioData.forEach(item => {
+                                const { category, subCategory, detailCategory } = item; if (!category || category === '未設定') return;
+                                if (!categoriesConfig[category]) { categoriesConfig[category] = {}; } if (!subCategory) return;
+                                if (!categoriesConfig[category][subCategory]) { categoriesConfig[category][subCategory] = detailCategory ? [] : null; } if (!detailCategory) return;
+                                if (categoriesConfig[category][subCategory] === null) { categoriesConfig[category][subCategory] = []; }
+                                if (Array.isArray(categoriesConfig[category][subCategory]) && !categoriesConfig[category][subCategory].includes(detailCategory)) { categoriesConfig[category][subCategory].push(detailCategory); }
+                            });
+                            portfolioData = importedPortfolioData; render();
+                        } catch (error) { alert('ファイルの読み込みに失敗しました。'); console.error('Import Error:', error); }
+                    };
+                    reader.readAsText(file); event.target.value = '';
+                });
+                analyzePortfolioBtn.addEventListener('click', async () => {
+                    aiModal.classList.remove('hidden'); setTimeout(() => aiModal.classList.remove('opacity-0'), 10); setTimeout(() => aiModal.querySelector('.modal-content').classList.remove('scale-95'), 10);
+                    modalLoader.classList.remove('hidden'); modalResult.classList.add('hidden'); modalResult.innerHTML = '';
+                    const cleanedPortfolioData = portfolioData.filter(item => (item.amount || 0) > 0).map(({ _isEditable, originalIndex, ...rest }) => rest);
+                    if (cleanedPortfolioData.length === 0) {
+                        modalResult.innerHTML = `<p>分析するデータがありません。まず資産を入力してください。</p>`;
+                        modalLoader.classList.add('hidden'); modalResult.classList.remove('hidden'); return;
+                    }
+                    const portfolioJSON = JSON.stringify(cleanedPortfolioData, null, 2);
+                    const analysis = await callGeminiAPI(portfolioJSON);
+                    modalResult.innerHTML = marked.parse(analysis);
+                    modalLoader.classList.add('hidden'); modalResult.classList.remove('hidden');
+                });
+                const closeModal = () => { aiModal.classList.add('opacity-0'); aiModal.querySelector('.modal-content').classList.add('scale-95'); setTimeout(() => aiModal.classList.add('hidden'), 300); };
+                modalCloseBtn.addEventListener('click', closeModal);
+                aiModal.addEventListener('click', (e) => { if (e.target === aiModal) closeModal(); });
+                render();
+            }
+            init();
+        </script>
+    </body>
+</html>
