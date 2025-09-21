@@ -1,3 +1,8 @@
+## [DEMO](https://hatohato25.github.io/money-portfolio/)
+
+<img width="1006" height="1030" alt="スクリーンショット 2025-09-11 10 11 54" src="https://github.com/user-attachments/assets/556aaa40-35b0-4fce-941e-c88a80e30abf" style="width: 40%;" />
+<img width="1022" height="1014" alt="スクリーンショット 2025-09-11 10 11 21" src="https://github.com/user-attachments/assets/ea163e0a-f506-4508-85c1-2a1aed4ab955" style="width: 41%;" />
+
 ## Gemini APIキーを使って、あなただけの資産ポートフォリオ分析アプリを完成させましょう！
 
 このガイドでは、Google AI Studioから**Gemini APIキーを取得**し、それをご自身の資産ポートフォリオ管理アプリケーションのソースコードに組み込む手順を解説します。さらに、ご自身の保有資産に合わせて**カテゴリーを自由にカスタマイズする方法**もご紹介します。
