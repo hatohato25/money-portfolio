@@ -289,7 +289,7 @@
              * @returns {Promise<string>} AIによる分析結果の文字列を返します。
              */
             async function callGeminiAPI(portfolioJSON) {
-                const apiKey = "AIzaSyCgRvkWISnwYwSQAcXI71AJoFM1KzyWR44";
+                const apiKey = "";
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const systemPrompt = "あなたは、知識豊富で親切なファイナンシャル・アシスタントです。ユーザーの資産ポートフォリオに関する専門的な分析と最新の知識を提供します。回答は常にmarkdown形式で、グラフィカルに読みやすく構成してください。";
                 const userQuery = `以下のJSONデータは私の資産ポートフォリオです。このポートフォリオを詳細に分析し、考慮すべき潜在的なリスク、ポートフォリオの強みと弱みを把握したうえで、さらなる攻めの一手を提案してください。\n\n\`\`\`json\n${portfolioJSON}\n\`\`\``;
