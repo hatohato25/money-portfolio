@@ -80,6 +80,10 @@
             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
             .prose h1, .prose h2, .prose h3 { margin-bottom: 0.5em; color: var(--text-main); }
             .prose p, .prose ul, .prose ol, .prose li { color: var(--text-subtle); }
+
+            /* Menu Button & Dropdown Styles */
+            #menu-btn:hover { background-color: var(--bg-card-hover); }
+            #menu-dropdown li button:hover { background-color: var(--bg-card-hover); }
         </style>
     </head>
     <body class="transition-colors duration-300">
@@ -88,7 +92,8 @@
             <header class="mb-8 relative">
                 <h1 class="text-3xl font-bold mb-2">資産ポートフォリオ</h1>
                 <p>あなたの金融資産を一覧で管理しましょう。</p>
-                <div class="absolute top-1 right-0">
+                <div class="absolute top-1 right-0 flex items-center space-x-2">
+                    <!-- ダークモードトグル -->
                     <label for="dark-mode-toggle" class="relative w-16 h-8 flex items-center cursor-pointer">
                         <input type="checkbox" id="dark-mode-toggle" class="sr-only peer">
                         <div class="absolute w-full h-full rounded-full transition-colors" style="background-color: var(--bg-button);"></div>
@@ -96,6 +101,27 @@
                         <svg class="absolute right-2 w-5 h-5 text-yellow-400 opacity-100 peer-checked:opacity-0 transition-opacity duration-300" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 15.657a1 1 0 010-1.414l-.707-.707a1 1 0 01-1.414 1.414l.707.707a1 1 0 011.414 0zM3 11a1 1 0 100-2H2a1 1 0 100 2h1zM6.464 4.95l.707-.707a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414z"></path></svg>
                         <div class="absolute top-1 left-1 bg-white w-6 h-6 rounded-full transition-transform peer-checked:translate-x-8 shadow-md"></div>
                     </label>
+
+                    <!-- メニューボタン -->
+                    <div class="relative">
+                        <button id="menu-btn" class="w-8 h-8 rounded-md flex items-center justify-center transition" style="background-color: var(--bg-button); color: var(--text-main);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="12" cy="5" r="1"></circle>
+                                <circle cx="12" cy="19" r="1"></circle>
+                            </svg>
+                        </button>
+                        <!-- ドロップダウンメニュー -->
+                        <div id="menu-dropdown" class="hidden absolute top-full right-0 mt-2 rounded-lg shadow-lg" style="background-color: var(--bg-card); border: 1px solid var(--border-main); min-width: 200px; z-index: 100;">
+                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                <li>
+                                    <button id="open-api-key-dialog-btn" class="w-full text-left transition" style="padding: 12px 16px; background: transparent; border: none; color: var(--text-main); cursor: pointer;">
+                                        Gemini API キー設定
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -163,6 +189,34 @@
                 </div>
                 <div class="p-4 text-xs" style="background-color: color-mix(in srgb, var(--bg-card) 50%, transparent); border-top: 1px solid var(--border-main);">
                     免責事項: この分析はAIによって生成されたものであり、情報提供のみを目的としています。専門的な財務アドバイスに代わるものではありません。投資判断はご自身の責任で行ってください。
+                </div>
+            </div>
+        </div>
+
+        <div id="api-key-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+            <div class="modal-content rounded-xl shadow-2xl w-full max-w-md transform scale-95">
+                <div class="flex justify-between items-center p-4" style="border-bottom: 1px solid var(--border-main);">
+                    <h3 class="text-xl font-bold">Gemini API キー設定</h3>
+                    <button id="api-key-modal-close-btn" class="hover:text-red-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="mb-4" style="color: var(--text-subtle);">
+                        Gemini APIキーを設定してください。APIキーは<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="underline" style="color: var(--accent-color);">Google AI Studio</a>から取得できます。
+                    </p>
+                    <p class="mb-4 text-sm" style="color: #f59e0b;">
+                        ⚠️ このAPIキーはブラウザに保存されます。共有PCでは使用を避けてください。
+                    </p>
+                    <input id="api-key-input" type="password" placeholder="API キーを入力" class="w-full p-3 border rounded-md focus:ring-2 focus:outline-none" style="background-color: var(--bg-input); border-color: var(--border-input); color: var(--text-main);" />
+                </div>
+                <div class="p-4 flex justify-end space-x-2" style="border-top: 1px solid var(--border-main);">
+                    <button id="api-key-cancel-btn" class="py-2 px-4 rounded-lg transition" style="background-color: var(--bg-button); color: var(--text-main);">
+                        キャンセル
+                    </button>
+                    <button id="api-key-save-btn" class="py-2 px-4 rounded-lg transition text-white" style="background-color: var(--accent-color);">
+                        保存
+                    </button>
                 </div>
             </div>
         </div>
@@ -280,8 +334,79 @@
             const modalLoader = document.getElementById('modal-loader');
             const modalResult = document.getElementById('modal-result');
 
+            // メニューとAPIキー設定の要素
+            const menuBtn = document.querySelector('#menu-btn');
+            const menuDropdown = document.querySelector('#menu-dropdown');
+            const openApiKeyDialogBtn = document.querySelector('#open-api-key-dialog-btn');
+            const apiKeyModal = document.querySelector('#api-key-modal');
+            const apiKeyModalCloseBtn = document.querySelector('#api-key-modal-close-btn');
+            const apiKeyInput = document.querySelector('#api-key-input');
+            const apiKeySaveBtn = document.querySelector('#api-key-save-btn');
+            const apiKeyCancelBtn = document.querySelector('#api-key-cancel-btn');
+
             const currencyFormatter = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', minimumFractionDigits: 0, maximumFractionDigits: 0, });
             const chartColors = [ '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#d946ef' ];
+
+            /**
+             * メニューの開閉をトグルします。
+             * @param {Event} event - クリックイベント。
+             */
+            function toggleMenu(event) {
+                event.stopPropagation();
+                menuDropdown.classList.toggle('hidden');
+            }
+
+            /**
+             * APIキー設定ダイアログを開きます。
+             * LocalStorageから既存のAPIキーを読み込み、入力フィールドに表示します。
+             */
+            function openApiKeyDialog() {
+                // メニューを閉じる
+                menuDropdown.classList.add('hidden');
+
+                // LocalStorageから既存のAPIキーを読み込み、入力フィールドに表示
+                const savedApiKey = localStorage.getItem('geminiApiKey') || '';
+                apiKeyInput.value = savedApiKey;
+
+                // モーダルを表示（フェードインアニメーション）
+                apiKeyModal.classList.remove('hidden');
+                setTimeout(() => {
+                    apiKeyModal.classList.remove('opacity-0');
+                    apiKeyModal.querySelector('.modal-content').classList.remove('scale-95');
+                }, 10);
+            }
+
+            /**
+             * APIキー設定モーダルを閉じます（フェードアウトアニメーション付き）。
+             */
+            function closeApiKeyModal() {
+                apiKeyModal.classList.add('opacity-0');
+                apiKeyModal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => {
+                    apiKeyModal.classList.add('hidden');
+                }, 300);
+            }
+
+            /**
+             * 入力されたAPIキーをLocalStorageに保存します。
+             */
+            function saveApiKey() {
+                const apiKey = apiKeyInput.value.trim();
+
+                if (!apiKey) {
+                    alert('APIキーを入力してください。');
+                    return;
+                }
+
+                // LocalStorageに保存
+                localStorage.setItem('geminiApiKey', apiKey);
+
+                // フィードバック表示
+                alert('APIキーを保存しました。');
+
+                // モーダルを閉じる
+                closeApiKeyModal();
+            }
             
             /**
              * Gemini APIを呼び出し、ポートフォリオの分析を依頼します。
@@ -289,8 +414,15 @@
              * @returns {Promise<string>} AIによる分析結果の文字列を返します。
              */
             async function callGeminiAPI(portfolioJSON) {
-                const apiKey = "";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                // LocalStorageからAPIキーを取得
+                const apiKey = localStorage.getItem('geminiApiKey') || '';
+
+                // APIキーが未設定の場合、警告を表示
+                if (!apiKey) {
+                    return 'APIキーが設定されていません。メニューから「Gemini API キー設定」を選択し、APIキーを設定してください。';
+                }
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
                 const systemPrompt = "あなたは、知識豊富で親切なファイナンシャル・アシスタントです。ユーザーの資産ポートフォリオに関する専門的な分析と最新の知識を提供します。回答は常にmarkdown形式で、グラフィカルに読みやすく構成してください。";
                 const userQuery = `以下のJSONデータは私の資産ポートフォリオです。このポートフォリオを詳細に分析し、考慮すべき潜在的なリスク、ポートフォリオの強みと弱みを把握したうえで、さらなる攻めの一手を提案してください。\n\n\`\`\`json\n${portfolioJSON}\n\`\`\``;
                 const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, };
@@ -777,6 +909,27 @@
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const savedTheme = localStorage.getItem('theme');
                 applyTheme(savedTheme === 'dark' || (!savedTheme && prefersDark));
+
+                // メニューボタンのイベントリスナー
+                menuBtn.addEventListener('click', toggleMenu);
+                openApiKeyDialogBtn.addEventListener('click', openApiKeyDialog);
+
+                // APIキー設定モーダルのイベントリスナー
+                apiKeyModalCloseBtn.addEventListener('click', closeApiKeyModal);
+                apiKeySaveBtn.addEventListener('click', saveApiKey);
+                apiKeyCancelBtn.addEventListener('click', closeApiKeyModal);
+
+                // モーダル外クリックで閉じる
+                apiKeyModal.addEventListener('click', (e) => {
+                    if (e.target === apiKeyModal) closeApiKeyModal();
+                });
+
+                // ドロップダウン外クリックで閉じる
+                document.addEventListener('click', (e) => {
+                    if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+                        menuDropdown.classList.add('hidden');
+                    }
+                });
                 
                 portfolioContainer.addEventListener('click', (e) => {
                     const header = e.target.closest('.accordion-header'); if (header) { handleAccordionToggle(header); return; }
