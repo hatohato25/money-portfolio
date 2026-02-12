@@ -119,6 +119,11 @@
                                         Gemini API キー設定
                                     </button>
                                 </li>
+                                <li>
+                                    <button id="open-user-query-dialog-btn" class="w-full text-left transition" style="padding: 12px 16px; background: transparent; border: none; color: var(--text-main); cursor: pointer;">
+                                        プロンプト設定
+                                    </button>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -215,6 +220,32 @@
                         キャンセル
                     </button>
                     <button id="api-key-save-btn" class="py-2 px-4 rounded-lg transition text-white" style="background-color: var(--accent-color);">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="user-query-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+            <div class="modal-content rounded-xl shadow-2xl w-full max-w-2xl transform scale-95" style="background-color: var(--bg-card);">
+                <div class="flex justify-between items-center p-4" style="border-bottom: 1px solid var(--border-main);">
+                    <h3 class="text-xl font-bold">プロンプト設定</h3>
+                    <button id="user-query-modal-close-btn" class="hover:text-red-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="mb-4" style="color: var(--text-subtle);">
+                        AI分析時に使用するプロンプトをカスタマイズできます。
+                        末尾には自動的に「以下のJSONデータは私の資産ポートフォリオです。」が追加されます。
+                    </p>
+                    <textarea id="user-query-textarea" rows="6" placeholder="プロンプトを入力" class="w-full p-3 border rounded-md focus:ring-2 focus:outline-none" style="background-color: var(--bg-input); border-color: var(--border-input); color: var(--text-main); resize: vertical;"></textarea>
+                </div>
+                <div class="p-4 flex justify-end space-x-2" style="border-top: 1px solid var(--border-main);">
+                    <button id="user-query-cancel-btn" class="py-2 px-4 rounded-lg transition" style="background-color: var(--bg-button); color: var(--text-main);">
+                        キャンセル
+                    </button>
+                    <button id="user-query-save-btn" class="py-2 px-4 rounded-lg transition text-white" style="background-color: var(--accent-color);">
                         保存
                     </button>
                 </div>
@@ -318,6 +349,9 @@
         </script>
 
         <script type="module">
+            // デフォルトのユーザークエリ（グローバル定数）
+            const DEFAULT_USER_QUERY = 'このポートフォリオを詳細に分析し、考慮すべき潜在的なリスク、ポートフォリオの強みと弱みを把握したうえで、さらなる攻めの一手を提案してください。';
+
             let portfolioData = [];
             let chartInstances = {};
             let openAccordions = new Set();
@@ -343,6 +377,14 @@
             const apiKeyInput = document.querySelector('#api-key-input');
             const apiKeySaveBtn = document.querySelector('#api-key-save-btn');
             const apiKeyCancelBtn = document.querySelector('#api-key-cancel-btn');
+
+            // ユーザークエリ設定モーダルの要素
+            const openUserQueryDialogBtn = document.querySelector('#open-user-query-dialog-btn');
+            const userQueryModal = document.querySelector('#user-query-modal');
+            const userQueryModalCloseBtn = document.querySelector('#user-query-modal-close-btn');
+            const userQueryTextarea = document.querySelector('#user-query-textarea');
+            const userQuerySaveBtn = document.querySelector('#user-query-save-btn');
+            const userQueryCancelBtn = document.querySelector('#user-query-cancel-btn');
 
             const currencyFormatter = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', minimumFractionDigits: 0, maximumFractionDigits: 0, });
             const chartColors = [ '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#d946ef' ];
@@ -407,6 +449,58 @@
                 // モーダルを閉じる
                 closeApiKeyModal();
             }
+
+            /**
+             * ユーザークエリ設定ダイアログを開きます。
+             * LocalStorageから既存のユーザークエリを読み込み、textareaに表示します。
+             */
+            function openUserQueryDialog() {
+                // メニューを閉じる
+                menuDropdown.classList.add('hidden');
+
+                // LocalStorageから既存のユーザークエリを読み込み、なければデフォルト値を使用
+                const savedUserQuery = localStorage.getItem('geminiUserQuery') || DEFAULT_USER_QUERY;
+                userQueryTextarea.value = savedUserQuery;
+
+                // モーダルを表示（フェードインアニメーション）
+                userQueryModal.classList.remove('hidden');
+                setTimeout(() => {
+                    userQueryModal.classList.remove('opacity-0');
+                    userQueryModal.querySelector('.modal-content').classList.remove('scale-95');
+                }, 10);
+            }
+
+            /**
+             * ユーザークエリ設定モーダルを閉じます（フェードアウトアニメーション付き）。
+             */
+            function closeUserQueryModal() {
+                userQueryModal.classList.add('opacity-0');
+                userQueryModal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => {
+                    userQueryModal.classList.add('hidden');
+                }, 300);
+            }
+
+            /**
+             * 入力されたユーザークエリをLocalStorageに保存します。
+             */
+            function saveUserQuery() {
+                const userQuery = userQueryTextarea.value.trim();
+
+                if (!userQuery) {
+                    alert('プロンプトを入力してください。');
+                    return;
+                }
+
+                // LocalStorageに保存
+                localStorage.setItem('geminiUserQuery', userQuery);
+
+                // フィードバック表示
+                alert('プロンプトを保存しました。');
+
+                // モーダルを閉じる
+                closeUserQueryModal();
+            }
             
             /**
              * Gemini APIを呼び出し、ポートフォリオの分析を依頼します。
@@ -424,7 +518,12 @@
 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
                 const systemPrompt = "あなたは、知識豊富で親切なファイナンシャル・アシスタントです。ユーザーの資産ポートフォリオに関する専門的な分析と最新の知識を提供します。回答は常にmarkdown形式で、グラフィカルに読みやすく構成してください。";
-                const userQuery = `以下のJSONデータは私の資産ポートフォリオです。このポートフォリオを詳細に分析し、考慮すべき潜在的なリスク、ポートフォリオの強みと弱みを把握したうえで、さらなる攻めの一手を提案してください。\n\n\`\`\`json\n${portfolioJSON}\n\`\`\``;
+
+                // LocalStorageからユーザークエリを取得（なければデフォルト値）
+                const customUserQuery = localStorage.getItem('geminiUserQuery') || DEFAULT_USER_QUERY;
+
+                // プロンプトを構成: カスタマイズ可能な部分 + 固定部分
+                const userQuery = `${customUserQuery}。以下のJSONデータは私の資産ポートフォリオです。\n\n\`\`\`json\n${portfolioJSON}\n\`\`\``;
                 const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, };
                 try {
                     const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -919,9 +1018,22 @@
                 apiKeySaveBtn.addEventListener('click', saveApiKey);
                 apiKeyCancelBtn.addEventListener('click', closeApiKeyModal);
 
+                // ユーザークエリ設定モーダルのイベントリスナー
+                openUserQueryDialogBtn.addEventListener('click', openUserQueryDialog);
+                userQueryModalCloseBtn.addEventListener('click', closeUserQueryModal);
+                userQuerySaveBtn.addEventListener('click', saveUserQuery);
+                userQueryCancelBtn.addEventListener('click', closeUserQueryModal);
+
+                // textareaのフォーカス/ブラーイベント
+                userQueryTextarea.onfocus = () => userQueryTextarea.style.borderColor = 'var(--border-focus)';
+                userQueryTextarea.onblur = () => userQueryTextarea.style.borderColor = 'var(--border-input)';
+
                 // モーダル外クリックで閉じる
                 apiKeyModal.addEventListener('click', (e) => {
                     if (e.target === apiKeyModal) closeApiKeyModal();
+                });
+                userQueryModal.addEventListener('click', (e) => {
+                    if (e.target === userQueryModal) closeUserQueryModal();
                 });
 
                 // ドロップダウン外クリックで閉じる
