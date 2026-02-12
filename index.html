@@ -124,6 +124,11 @@
                                         プロンプト設定
                                     </button>
                                 </li>
+                                <li>
+                                    <button id="open-categories-config-dialog-btn" class="w-full text-left transition" style="padding: 12px 16px; background: transparent; border: none; color: var(--text-main); cursor: pointer;">
+                                        カテゴリー設定
+                                    </button>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -246,6 +251,32 @@
                         キャンセル
                     </button>
                     <button id="user-query-save-btn" class="py-2 px-4 rounded-lg transition text-white" style="background-color: var(--accent-color);">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="categories-config-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+            <div class="modal-content rounded-xl shadow-2xl w-full max-w-4xl transform scale-95" style="background-color: var(--bg-card);">
+                <div class="flex justify-between items-center p-4" style="border-bottom: 1px solid var(--border-main);">
+                    <h3 class="text-xl font-bold">カテゴリー設定</h3>
+                    <button id="categories-config-modal-close-btn" class="hover:text-red-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="mb-4" style="color: var(--text-subtle);">
+                        カテゴリー構造をカスタマイズできます。
+                        JSON形式で編集してください。変更は保存後にページリロードで反映されます。
+                    </p>
+                    <textarea id="categories-config-textarea" rows="20" placeholder='{"カテゴリー名": {"中カテゴリー名": ["小カテゴリー1", "小カテゴリー2"]}}' class="w-full p-3 border rounded-md focus:ring-2 focus:outline-none font-mono text-sm" style="background-color: var(--bg-input); border-color: var(--border-input); color: var(--text-main); resize: vertical;"></textarea>
+                </div>
+                <div class="p-4 flex justify-end space-x-2" style="border-top: 1px solid var(--border-main);">
+                    <button id="categories-config-cancel-btn" class="py-2 px-4 rounded-lg transition" style="background-color: var(--bg-button); color: var(--text-main);">
+                        キャンセル
+                    </button>
+                    <button id="categories-config-save-btn" class="py-2 px-4 rounded-lg transition text-white" style="background-color: var(--accent-color);">
                         保存
                     </button>
                 </div>
@@ -386,6 +417,14 @@
             const userQuerySaveBtn = document.querySelector('#user-query-save-btn');
             const userQueryCancelBtn = document.querySelector('#user-query-cancel-btn');
 
+            // カテゴリー設定モーダルの要素
+            const openCategoriesConfigDialogBtn = document.querySelector('#open-categories-config-dialog-btn');
+            const categoriesConfigModal = document.querySelector('#categories-config-modal');
+            const categoriesConfigModalCloseBtn = document.querySelector('#categories-config-modal-close-btn');
+            const categoriesConfigTextarea = document.querySelector('#categories-config-textarea');
+            const categoriesConfigSaveBtn = document.querySelector('#categories-config-save-btn');
+            const categoriesConfigCancelBtn = document.querySelector('#categories-config-cancel-btn');
+
             const currencyFormatter = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', minimumFractionDigits: 0, maximumFractionDigits: 0, });
             const chartColors = [ '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#d946ef' ];
 
@@ -501,7 +540,87 @@
                 // モーダルを閉じる
                 closeUserQueryModal();
             }
-            
+
+            /**
+             * カテゴリー設定ダイアログを開きます。
+             * LocalStorageから既存のcategoriesConfigを読み込み、textareaに表示します。
+             */
+            function openCategoriesConfigDialog() {
+                // メニューを閉じる
+                menuDropdown.classList.add('hidden');
+
+                // LocalStorageから既存のcategoriesConfigを読み込み、なければデフォルト値を使用
+                const savedCategoriesConfig = localStorage.getItem('categoriesConfig');
+                let configToDisplay;
+
+                if (savedCategoriesConfig) {
+                    try {
+                        configToDisplay = JSON.parse(savedCategoriesConfig);
+                    } catch (error) {
+                        // パースエラーの場合はデフォルト値を使用
+                        configToDisplay = categoriesConfig;
+                    }
+                } else {
+                    // LocalStorageに値がない場合はグローバル変数（デフォルト値）を使用
+                    configToDisplay = categoriesConfig;
+                }
+
+                // JSON.stringify でフォーマットしてtextareaに表示
+                categoriesConfigTextarea.value = JSON.stringify(configToDisplay, null, 2);
+
+                // モーダルを表示（フェードインアニメーション）
+                categoriesConfigModal.classList.remove('hidden');
+                setTimeout(() => {
+                    categoriesConfigModal.classList.remove('opacity-0');
+                    categoriesConfigModal.querySelector('.modal-content').classList.remove('scale-95');
+                }, 10);
+            }
+
+            /**
+             * カテゴリー設定モーダルを閉じます（フェードアウトアニメーション付き）。
+             */
+            function closeCategoriesConfigModal() {
+                categoriesConfigModal.classList.add('opacity-0');
+                categoriesConfigModal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => {
+                    categoriesConfigModal.classList.add('hidden');
+                }, 300);
+            }
+
+            /**
+             * 入力されたcategoriesConfigをLocalStorageに保存します。
+             * JSONバリデーションを行い、不正な形式の場合はエラーを表示します。
+             */
+            function saveCategoriesConfig() {
+                const configText = categoriesConfigTextarea.value.trim();
+
+                if (!configText) {
+                    alert('カテゴリー設定を入力してください。');
+                    return;
+                }
+
+                // JSONパースでバリデーション
+                let parsedConfig;
+                try {
+                    parsedConfig = JSON.parse(configText);
+                } catch (error) {
+                    alert('無効なJSON形式です。正しいJSON形式で入力してください。');
+                    return;
+                }
+
+                // LocalStorageに保存
+                localStorage.setItem('categoriesConfig', configText);
+
+                // フィードバック表示
+                alert('カテゴリー設定を保存しました。ページをリロードして反映します。');
+
+                // モーダルを閉じる
+                closeCategoriesConfigModal();
+
+                // ページをリロードして変更を反映
+                window.location.reload();
+            }
+
             /**
              * Gemini APIを呼び出し、ポートフォリオの分析を依頼します。
              * @param {string} portfolioJSON - ポートフォリオデータをJSON形式の文字列で渡します。
@@ -1004,6 +1123,18 @@
              * アプリケーションを初期化し、イベントリスナーを設定します。
              */
             function init() {
+                // LocalStorageからcategoriesConfigを読み込み
+                const savedCategoriesConfig = localStorage.getItem('categoriesConfig');
+                if (savedCategoriesConfig) {
+                    try {
+                        const parsedConfig = JSON.parse(savedCategoriesConfig);
+                        // グローバル変数categoriesConfigを上書き
+                        Object.assign(categoriesConfig, parsedConfig);
+                    } catch (error) {
+                        console.error('Failed to load categoriesConfig from localStorage:', error);
+                    }
+                }
+
                 darkModeToggle.addEventListener('change', () => applyTheme(darkModeToggle.checked));
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const savedTheme = localStorage.getItem('theme');
@@ -1024,9 +1155,17 @@
                 userQuerySaveBtn.addEventListener('click', saveUserQuery);
                 userQueryCancelBtn.addEventListener('click', closeUserQueryModal);
 
+                // カテゴリー設定モーダルのイベントリスナー
+                openCategoriesConfigDialogBtn.addEventListener('click', openCategoriesConfigDialog);
+                categoriesConfigModalCloseBtn.addEventListener('click', closeCategoriesConfigModal);
+                categoriesConfigSaveBtn.addEventListener('click', saveCategoriesConfig);
+                categoriesConfigCancelBtn.addEventListener('click', closeCategoriesConfigModal);
+
                 // textareaのフォーカス/ブラーイベント
                 userQueryTextarea.onfocus = () => userQueryTextarea.style.borderColor = 'var(--border-focus)';
                 userQueryTextarea.onblur = () => userQueryTextarea.style.borderColor = 'var(--border-input)';
+                categoriesConfigTextarea.onfocus = () => categoriesConfigTextarea.style.borderColor = 'var(--border-focus)';
+                categoriesConfigTextarea.onblur = () => categoriesConfigTextarea.style.borderColor = 'var(--border-input)';
 
                 // モーダル外クリックで閉じる
                 apiKeyModal.addEventListener('click', (e) => {
@@ -1034,6 +1173,9 @@
                 });
                 userQueryModal.addEventListener('click', (e) => {
                     if (e.target === userQueryModal) closeUserQueryModal();
+                });
+                categoriesConfigModal.addEventListener('click', (e) => {
+                    if (e.target === categoriesConfigModal) closeCategoriesConfigModal();
                 });
 
                 // ドロップダウン外クリックで閉じる
